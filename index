@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Waiting for the reply</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep:   #150d1a;
+    --bg-mid:    #2a1830;
+    --paper:     #f6ecd8;
+    --paper-dim: #efe1c5;
+    --ink:       #3a2a2f;
+    --gold:      #c9a24d;
+    --gold-light:#e8cf9c;
+    --gold-dim:  #8a7245;
+    --blush:     #e3aec4;
+    --lav-dim:   #9c8bab;
+    --cat-body:  #4a3550;
+    --cat-body-d:#3a2740;
+    --ease-fluid: cubic-bezier(.22,.68,0,1);
+  }
+  *{ box-sizing: border-box; }
+  html, body{
+    margin:0; padding:0; height:100%;
+    background: var(--bg-deep);
+    font-family: 'Jost', sans-serif;
+    color: var(--lav-dim);
+    overflow: hidden;
+  }
+  #aurora{ position:fixed; inset:0; z-index:0; overflow:hidden; }
+  .bloom{
+    position:absolute;
+    border-radius:50%;
+    filter: blur(70px);
+    opacity:.55;
+    mix-blend-mode: screen;
+    animation: drift 26s var(--ease-fluid) infinite alternate;
+  }
+  .bloom.a{ width:520px; height:520px; top:-12%; left:-8%;
+    background: radial-gradient(circle, rgba(201,162,77,.35), transparent 70%);
+    animation-duration: 30s; }
+  .bloom.b{ width:460px; height:460px; bottom:-14%; right:-6%;
+    background: radial-gradient(circle, rgba(227,174,196,.28), transparent 70%);
+    animation-duration: 34s; animation-delay: -6s; }
+  .bloom.c{ width:380px; height:380px; top:38%; left:60%;
+    background: radial-gradient(circle, rgba(42,24,48,.55), transparent 70%);
+    animation-duration: 24s; animation-delay: -3s; }
+  @keyframes drift{
+    0%   { transform: translate(0,0) scale(1); }
+    100% { transform: translate(6%, 8%) scale(1.12); }
+  }
+
+  #emoji-field{ position:fixed; inset:0; z-index:1; pointer-events:none; overflow:hidden; }
+  .sad-emoji{
+    position:absolute;
+    font-size: 26px;
+    opacity: 0;
+    filter: drop-shadow(0 6px 10px rgba(0,0,0,.35)) grayscale(.15) saturate(.85);
+    animation-name: emoji-float;
+    animation-timing-function: var(--ease-fluid);
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+    will-change: transform, opacity;
+  }
+  @keyframes emoji-float{
+    0%   { transform: translate3d(0,0,0) rotate(var(--rot-a,-6deg)) scale(.94); opacity: var(--op-a,.28); }
+    100% { transform: translate3d(var(--dx,14px), var(--dy,-26px), 0) rotate(var(--rot-b,6deg)) scale(1); opacity: var(--op-b,.5); }
+  }
+
+  #motes{ position:fixed; inset:0; z-index:1; pointer-events:none; overflow:hidden; }
+  .mote{
+    position:absolute;
+    border-radius:50%;
+    background: radial-gradient(circle, var(--gold-light), transparent 70%);
+    animation-name: float-mote;
+    animation-timing-function: var(--ease-fluid);
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+    will-change: transform, opacity;
+  }
+  @keyframes float-mote{
+    0%   { transform: translate3d(0,0,0); opacity: var(--op-a, .15); }
+    100% { transform: translate3d(var(--dx,10px), var(--dy,-90px), 0); opacity: var(--op-b, .55); }
+  }
+
+  #loader{
+    position: fixed; inset: 0; z-index: 50;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: var(--bg-deep);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity .5s var(--ease-fluid), visibility 0s linear .5s;
+  }
+  #loader.show{
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition: opacity .5s var(--ease-fluid), visibility 0s linear 0s;
+  }
+  .loader-inner{ width: 240px; display: flex; flex-direction: column; align-items: center; }
+  .loader-label{
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 18px;
+    color: var(--gold-light);
+    margin: 0 0 20px;
+    min-height: 26px;
+    text-align: center;
+    transition: opacity .25s ease;
+  }
+  .loader-bar{
+    width: 100%;
+    height: 5px;
+    border-radius: 999px;
+    background: rgba(201,162,77,0.14);
+    overflow: hidden;
+  }
+  .loader-fill{
+    height: 100%;
+    width: 0%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--gold-dim), var(--gold), var(--gold-light));
+    transition: width .5s var(--ease-fluid);
+  }
+  .loader-pct{
+    font-family: 'Jost', sans-serif;
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: .28em;
+    text-transform: uppercase;
+    color: var(--gold-dim);
+    margin: 14px 0 0;
+  }
+
+  #credit{
+    position: fixed;
+    bottom: 12px; left: 0; right: 0;
+    text-align: center;
+    font-family: 'Jost', sans-serif;
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--gold-dim);
+    opacity: .5;
+    z-index: 6;
+    pointer-events: none;
+  }
+  #stage{
+    position: relative;
+    width: 100vw; height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 2;
+  }
+  .screen{
+    position:absolute; inset:0;
+    display:none;
+    flex-direction: column; align-items:center; justify-content:center;
+    text-align:center;
+    padding: 24px;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity .65s var(--ease-fluid), transform .65s var(--ease-fluid);
+  }
+  .screen.active{ display:flex; opacity: 1; transform: translateY(0); }
+  .eyebrow{
+    font-family: 'Jost', sans-serif;
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: .32em;
+    text-transform: uppercase;
+    color: var(--gold-dim);
+    margin: 0 0 14px;
+  }
+  h1{
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-weight: 500;
+    font-size: 34px;
+    color: var(--gold-light);
+    margin: 0 0 6px;
+    letter-spacing: .3px;
+  }
+  .flourish{
+    width: 64px; height: 10px;
+    margin: 18px 0 30px;
+    opacity: .8;
+  }
+  .flourish svg{ width:100%; height:100%; display:block; }
+
+  .btn-row{ display:flex; gap: 16px; }
+  button{
+    font-family: 'Jost', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    padding: 13px 30px;
+    border-radius: 999px;
+    border: 1px solid rgba(201,162,77,0.45);
+    background: rgba(255,255,255,0.02);
+    color: var(--gold-light);
+    cursor: pointer;
+    transition: transform .35s var(--ease-fluid), background .35s ease, border-color .35s ease, box-shadow .35s ease;
+  }
+  button:hover{
+    background: rgba(201,162,77,0.1);
+    border-color: var(--gold);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(201,162,77,0.15);
+  }
+  button:active{ transform: translateY(0) scale(0.97); }
+  button.primary{
+    background: linear-gradient(160deg, var(--gold), #b78a3a);
+    color: #2a1a10;
+    border-color: transparent;
+    box-shadow: 0 8px 24px rgba(201,162,77,0.25);
+  }
+  button.primary:hover{
+    background: linear-gradient(160deg, var(--gold-light), var(--gold));
+    box-shadow: 0 10px 28px rgba(201,162,77,0.35);
+  }
+
+  #screen-no p{
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 20px;
+    color: var(--lav-dim);
+    max-width: 300px;
+    line-height: 1.7;
+    margin: 0 0 30px;
+  }
+
+  /* ---------- envelope ---------- */
+  #envelope-wrap{
+    position: relative;
+    width: 230px; height: 156px;
+    cursor: pointer;
+    user-select: none;
+    filter: drop-shadow(0 18px 34px rgba(0,0,0,0.5));
+    opacity: 0;
+    transform: translateY(34px) scale(.82) rotate(-2deg);
+    transition: opacity .9s var(--ease-fluid), transform .9s var(--ease-fluid);
+  }
+  #envelope-wrap.show{
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+  .env-back{
+    position:absolute; inset:0;
+    background: linear-gradient(165deg, var(--paper) 0%, var(--paper-dim) 55%, #e2cd9e 100%);
+    border-radius: 5px;
+  }
+  .env-back::before{
+    content:'';
+    position:absolute; inset:0;
+    background: linear-gradient(115deg, transparent 45%, rgba(255,255,255,.35) 50%, transparent 55%);
+    background-size: 220% 220%;
+    background-position: 120% 0%;
+    border-radius: 5px;
+  }
+  .env-flap{
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 80px;
+    background: linear-gradient(165deg, #e9d5a4, #d3ae72);
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    transform-origin: top center;
+    transition: transform .75s var(--ease-fluid);
+    border-radius: 5px 5px 0 0;
+    z-index: 3;
+  }
+  #envelope-wrap.open .env-flap{ transform: rotateX(178deg); }
+
+  .env-seal{
+    position:absolute;
+    top: 66px; left: 50%;
+    width: 40px; height: 40px;
+    transform: translate(-50%,-50%);
+    z-index: 4;
+    transition: opacity .35s ease, transform .4s var(--ease-fluid);
+  }
+  .env-seal svg{ width:100%; height:100%; display:block;
+    filter: drop-shadow(0 3px 6px rgba(0,0,0,.35)); }
+  #envelope-wrap.open .env-seal{ opacity: 0; transform: translate(-50%,-50%) scale(.4) rotate(25deg); }
+  #envelope-wrap.cracking .env-seal{ transform: translate(-50%,-50%) scale(.85) rotate(-8deg); }
+
+  .env-letter{
+    position:absolute;
+    left: 10px; right: 10px;
+    bottom: 8px;
+    height: 100px;
+    background: var(--paper);
+    background-image:
+      linear-gradient(var(--paper), var(--paper)),
+      repeating-linear-gradient(to bottom, transparent 0 25px, rgba(58,42,47,0.06) 25px 26px);
+    border-radius: 3px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+    display:flex; align-items:center; justify-content:center;
+    padding: 14px 16px;
+    text-align:center;
+    color: var(--ink);
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 17px;
+    font-weight: 500;
+    line-height: 1.5;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(0) scale(.94) rotate(-1deg);
+    transition: transform .75s var(--ease-fluid), opacity .4s ease .15s, visibility 0s linear .55s;
+    z-index: 2;
+  }
+  #envelope-wrap.open .env-letter{
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(-98px) scale(1) rotate(0deg);
+    z-index: 5;
+    transition: transform .75s var(--ease-fluid) .25s, opacity .5s ease .3s, visibility 0s linear 0s;
+  }
+  /* graceful fade-out before the envelope resets, instead of fading mid-slide */
+  #envelope-wrap.closing .env-letter{
+    opacity: 0;
+    visibility: visible;
+    transform: translateY(-98px) scale(.97) rotate(-1deg);
+    transition: opacity .45s ease, transform .45s var(--ease-fluid), visibility 0s linear .45s;
+  }
+
+  .dust-particle{
+    position:absolute;
+    top: 66px; left: 50%;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--gold-light);
+    pointer-events:none;
+    z-index: 6;
+    opacity: 1;
+    animation: dust-burst .7s var(--ease-fluid) forwards;
+  }
+  @keyframes dust-burst{
+    0%   { transform: translate(-50%,-50%) scale(1); opacity: 1; }
+    100% { transform: translate(calc(-50% + var(--px,0px)), calc(-50% + var(--py,0px))) scale(0); opacity: 0; }
+  }
+
+  #hint{
+    margin-top: 36px;
+    font-size: 11px;
+    letter-spacing: .28em;
+    text-transform: uppercase;
+    color: var(--gold-dim);
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity .6s ease .3s, transform .6s var(--ease-fluid) .3s;
+  }
+  #hint.show{ opacity: 1; transform: translateY(0); }
+  #cat-corner{
+    position: fixed;
+    left: 10px; bottom: 6px;
+    z-index: 5;
+    width: 150px; height: 132px;
+    pointer-events: none;
+    filter: drop-shadow(0 14px 22px rgba(0,0,0,.45));
+  }
+  #cat-corner svg{ width:100%; height:100%; display:block; overflow:visible; }
+  #cat-corner .cat-ear,
+  #cat-corner .cat-head,
+  #cat-corner .cat-body-shape{
+    transition: transform .5s var(--ease-fluid);
+    transform-origin: 48px 60px;
+  }
+  #cat-corner .face-part{
+    opacity: 0;
+    transform: scale(.8);
+    transform-origin: 48px 44px;
+    transition: opacity .4s ease, transform .4s var(--ease-fluid);
+  }
+  /* neutral (default, before any choice) */
+  #cat-corner[data-state="neutral"] .fp-eyes-neutral,
+  #cat-corner[data-state="neutral"] .fp-mouth-neutral{ opacity: 1; transform: scale(1); }
+  /* sad (tapped No) */
+  #cat-corner[data-state="sad"] .fp-eyes-sad,
+  #cat-corner[data-state="sad"] .fp-mouth-sad{ opacity: 1; transform: scale(1); }
+  #cat-corner[data-state="sad"] .cat-head{ transform: translateY(4px) rotate(-4deg); }
+  /* happy variants (envelope screen) */
+  #cat-corner[data-state^="happy"] .fp-mouth-happy{ opacity: 1; transform: scale(1); }
+  #cat-corner[data-state="happy-0"] .fp-eyes-happy-0{ opacity: 1; transform: scale(1); }
+  #cat-corner[data-state="happy-1"] .fp-eyes-happy-1{ opacity: 1; transform: scale(1); }
+  #cat-corner[data-state="happy-2"] .fp-eyes-happy-2{ opacity: 1; transform: scale(1); }
+  #cat-corner[data-state^="happy"] .fp-blush{ opacity: 1; transform: scale(1); }
+  #cat-corner[data-state="happy-2"] .fp-heart{ opacity: 1; transform: scale(1); }
+  #cat-corner[data-state^="happy"] .cat-head{ transform: translateY(-3px); }
+
+  .fp-heart{ animation: heart-pulse 1.1s ease-in-out infinite; }
+  @keyframes heart-pulse{
+    0%,100%{ transform: scale(1); }
+    50%    { transform: scale(1.18); }
+  }
+  #cat-corner.bounce .cat-body-shape,
+  #cat-corner.bounce .cat-head{
+    animation: cat-bounce .55s var(--ease-fluid);
+  }
+  @keyframes cat-bounce{
+    0%  { transform: translateY(0); }
+    35% { transform: translateY(-9px); }
+    65% { transform: translateY(2px); }
+    100%{ transform: translateY(0); }
+  }
+  .cat-tail{
+    transform-origin: 84px 66px;
+    animation: tail-wag 2.6s ease-in-out infinite;
+  }
+  @keyframes tail-wag{
+    0%,100%{ transform: rotate(0deg); }
+    50%    { transform: rotate(10deg); }
+  }
+</style>
+</head>
+<body>
+
+<div id="loader">
+  <div class="loader-inner">
+    <p class="loader-label" id="loader-label">creating git</p>
+    <div class="loader-bar"><div class="loader-fill" id="loader-fill"></div></div>
+    <p class="loader-pct" id="loader-pct">0%</p>
+  </div>
+</div>
+
+<div id="aurora">
+  <div class="bloom a"></div>
+  <div class="bloom b"></div>
+  <div class="bloom c"></div>
+</div>
+<div id="emoji-field"></div>
+<div id="motes"></div>
+
+<!-- corner cat, present throughout, reacts to the user's choices -->
+<div id="cat-corner" data-state="neutral">
+  <svg viewBox="0 0 96 84">
+    <path class="cat-tail" d="M76 66 Q94 64 90 42" stroke="var(--cat-body)" stroke-width="8" fill="none" stroke-linecap="round"/>
+    <g class="cat-body-shape">
+      <ellipse cx="48" cy="70" rx="32" ry="13" fill="var(--cat-body)"/>
+    </g>
+    <g class="cat-head">
+      <path class="cat-ear" d="M22 38 L15 16 L34 30 Z" fill="var(--cat-body)"/>
+      <path class="cat-ear" d="M28 34 L24 20 L36 29 Z" fill="var(--cat-body-d)"/>
+      <path class="cat-ear" d="M74 38 L81 16 L62 30 Z" fill="var(--cat-body)"/>
+      <path class="cat-ear" d="M68 34 L72 20 L60 29 Z" fill="var(--cat-body-d)"/>
+      <circle cx="48" cy="46" r="28" fill="var(--cat-body)"/>
+
+      <!-- eyes: neutral -->
+      <g class="face-part fp-eyes-neutral">
+        <circle cx="37" cy="44" r="3.4" fill="var(--gold-light)"/>
+        <circle cx="59" cy="44" r="3.4" fill="var(--gold-light)"/>
+      </g>
+      <!-- eyes: sad -->
+      <g class="face-part fp-eyes-sad">
+        <path d="M32 41 Q37 46 42 41" stroke="var(--gold-light)" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+        <path d="M54 41 Q59 46 64 41" stroke="var(--gold-light)" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+      </g>
+      <!-- eyes: happy variant 0 — content curved -->
+      <g class="face-part fp-eyes-happy-0">
+        <path d="M32 45 Q37 40 42 45" stroke="var(--gold-light)" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+        <path d="M54 45 Q59 40 64 45" stroke="var(--gold-light)" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+      </g>
+      <!-- eyes: happy variant 1 — wink -->
+      <g class="face-part fp-eyes-happy-1">
+        <path d="M32 45 Q37 40 42 45" stroke="var(--gold-light)" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+        <circle cx="59" cy="44" r="3.4" fill="var(--gold-light)"/>
+        <path d="M53 37 L65 37" stroke="var(--gold-light)" stroke-width="1.6" stroke-linecap="round"/>
+      </g>
+      <!-- eyes: happy variant 2 — sparkly wide -->
+      <g class="face-part fp-eyes-happy-2">
+        <circle cx="37" cy="44" r="4.4" fill="var(--gold-light)"/>
+        <circle cx="59" cy="44" r="4.4" fill="var(--gold-light)"/>
+        <circle cx="38.5" cy="42" r="1.3" fill="#2a1a10"/>
+        <circle cx="60.5" cy="42" r="1.3" fill="#2a1a10"/>
+      </g>
+
+      <!-- mouth: neutral -->
+      <path class="face-part fp-mouth-neutral" d="M42 55 Q48 58 54 55" stroke="var(--gold-light)" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <!-- mouth: sad -->
+      <path class="face-part fp-mouth-sad" d="M40 58 Q48 52 56 58" stroke="var(--gold-light)" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <!-- mouth: happy (shared by all happy variants) -->
+      <path class="face-part fp-mouth-happy" d="M39 53 Q48 62 57 53" stroke="var(--gold-light)" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+
+      <!-- blush -->
+      <g class="face-part fp-blush">
+        <ellipse cx="28" cy="52" rx="4.5" ry="2.6" fill="var(--blush)" opacity=".65"/>
+        <ellipse cx="68" cy="52" rx="4.5" ry="2.6" fill="var(--blush)" opacity=".65"/>
+      </g>
+      <!-- little heart, only for happiest variant -->
+      <path class="face-part fp-heart" d="M48 24 c-2.4 -3.4 -8 -1.6 -8 2.6 c0 3.4 8 8 8 8 s8 -4.6 8 -8 c0 -4.2 -5.6 -6 -8 -2.6 Z" fill="var(--blush)"/>
+    </g>
+  </svg>
+</div>
+
+<div id="stage">
+
+  <div class="screen active" id="screen-start">
+    <p class="eyebrow">a small note</p>
+    <h1>Want to proceed?</h1>
+    <div class="flourish">
+      <svg viewBox="0 0 64 10"><path d="M0 5 H24 M40 5 H64" stroke="#c9a24d" stroke-width="1"/><circle cx="32" cy="5" r="3" fill="none" stroke="#c9a24d" stroke-width="1"/></svg>
+    </div>
+    <div class="btn-row">
+      <button class="primary" id="btn-yes">Yes</button>
+      <button id="btn-no">No</button>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-no">
+    <p>Please proceed<br>Coded hard for it</p>
+    <button id="btn-retry">Okay,let me try again</button>
+  </div>
+
+  <div class="screen" id="screen-envelope">
+    <div id="envelope-wrap">
+      <div class="env-back"></div>
+      <div class="env-letter" id="env-letter">A single reply would do the work</div>
+      <div class="env-seal">
+        <svg viewBox="0 0 40 40">
+          <circle cx="20" cy="20" r="18" fill="#a8433f"/>
+          <circle cx="20" cy="20" r="18" fill="url(#seal-sheen)"/>
+          <text x="20" y="26" font-family="Cormorant Garamond, serif" font-style="italic" font-size="18" fill="#e8cf9c" text-anchor="middle">A</text>
+          <defs>
+            <radialGradient id="seal-sheen" cx="35%" cy="30%" r="70%">
+              <stop offset="0%" stop-color="#c9605a" stop-opacity=".9"/>
+              <stop offset="100%" stop-color="#7a2e2a" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+        </svg>
+      </div>
+      <div class="env-flap"></div>
+    </div>
+    <div id="hint">Tap the seal</div>
+  </div>
+
+</div>
+
+<div id="credit">Coded bluntly by Alvee</div>
+
+<script>
+  const messages = ["Maybe a cup of tea in Fultola would be better than thinking me as your friendlisted one", "At least you owe me some replies", "I may know how to fix my bugs but not the reason of you not replying my DMs" , "I may stalk you but I have reasons to do so" ,"I would rather keep messaging than loose the Delulu","Turns out debugging a mile long code is easier than getting your reply"];
+  let lastIndex = -1;
+  function pickMessage(){
+    let i = Math.floor(Math.random()*messages.length);
+    if(messages.length > 1){
+      while(i === lastIndex){ i = Math.floor(Math.random()*messages.length); }
+    }
+    lastIndex = i;
+    return { text: messages[i], index: i };
+  }
+
+  function showScreen(id){
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  // ---- corner cat reactions ----
+  const catCorner = document.getElementById('cat-corner');
+  function setCatState(state){
+    catCorner.dataset.state = state;
+    catCorner.classList.remove('bounce');
+    // restart the bounce animation
+    void catCorner.offsetWidth;
+    catCorner.classList.add('bounce');
+  }
+
+  // sad emojis, hovering quietly for the whole process — muted, slow, never in the way
+  const sadEmojis = ["\u{1F622}", "\u{1F614}", "\u{1F97A}", "\u{1F62D}", "\u{1F641}", "\u{1F62B}"];
+  const emojiField = document.getElementById('emoji-field');
+  const emojiSpots = [
+    {top:'8%',  left:'10%'}, {top:'14%', left:'84%'}, {top:'22%', left:'46%'},
+    {top:'36%', left:'6%'},  {top:'30%', left:'92%'}, {top:'50%', left:'16%'},
+    {top:'46%', left:'80%'}, {top:'64%', left:'40%'}, {top:'70%', left:'8%'},
+    {top:'76%', left:'88%'}, {top:'86%', left:'28%'}, {top:'90%', left:'62%'}
+  ];
+  emojiSpots.forEach((pos, i) => {
+    const el = document.createElement('div');
+    el.className = 'sad-emoji';
+    el.textContent = sadEmojis[i % sadEmojis.length];
+    el.style.top = pos.top;
+    el.style.left = pos.left;
+    el.style.animationDuration = (8 + Math.random()*8) + 's';
+    el.style.animationDelay = (Math.random()*-10) + 's';
+    el.style.setProperty('--dx', (Math.random()*22 - 11) + 'px');
+    el.style.setProperty('--dy', (-(18 + Math.random()*26)) + 'px');
+    el.style.setProperty('--rot-a', (Math.random()*10 - 12) + 'deg');
+    el.style.setProperty('--rot-b', (Math.random()*10 + 2) + 'deg');
+    el.style.setProperty('--op-a', (0.16 + Math.random()*0.08).toFixed(2));
+    el.style.setProperty('--op-b', (0.34 + Math.random()*0.14).toFixed(2));
+    emojiField.appendChild(el);
+  });
+
+  // ambient floating gold motes — slow, varied, unobtrusive
+  const motesField = document.getElementById('motes');
+  const MOTE_COUNT = 22;
+  for(let i=0;i<MOTE_COUNT;i++){
+    const el = document.createElement('div');
+    el.className = 'mote';
+    const size = 2 + Math.random()*4;
+    el.style.width = size + 'px';
+    el.style.height = size + 'px';
+    el.style.top = (Math.random()*100) + '%';
+    el.style.left = (Math.random()*100) + '%';
+    el.style.animationDuration = (9 + Math.random()*10) + 's';
+    el.style.animationDelay = (Math.random()*-12) + 's';
+    el.style.setProperty('--dx', (Math.random()*60 - 30) + 'px');
+    el.style.setProperty('--dy', (-(60 + Math.random()*90)) + 'px');
+    el.style.setProperty('--op-a', (0.08 + Math.random()*0.12).toFixed(2));
+    el.style.setProperty('--op-b', (0.35 + Math.random()*0.35).toFixed(2));
+    motesField.appendChild(el);
+  }
+
+  // ---- loading screen (runs after tapping Yes) ----
+  const loader = document.getElementById('loader');
+  const loaderLabel = document.getElementById('loader-label');
+  const loaderFill = document.getElementById('loader-fill');
+  const loaderPct = document.getElementById('loader-pct');
+  const loadSteps = [
+    { label: 'Creating git', pct: 22 },
+    { label: 'Keeping a happy face', pct: 46 },
+    { label: 'Not trying to be flashy', pct: 68 },
+    { label: 'Pouring the best of myself', pct: 76 },
+    { label: 'Trying to get a reply', pct: 88 },
+    { label: 'Completed', pct: 100 }
+  ];
+  function runLoader(onDone){
+    loaderFill.style.width = '0%';
+    loaderPct.textContent = '0%';
+    loaderLabel.style.opacity = '0';
+    loader.classList.add('show');
+    let i = 0;
+    function step(){
+      if(i >= loadSteps.length){ setTimeout(onDone, 450); return; }
+      const s = loadSteps[i];
+      loaderLabel.style.opacity = '0';
+      setTimeout(() => {
+        loaderLabel.textContent = s.label;
+        loaderLabel.style.opacity = '1';
+        loaderFill.style.width = s.pct + '%';
+        loaderPct.textContent = s.pct + '%';
+      }, 120);
+      i++;
+      setTimeout(step, 1000);
+    }
+    step();
+  }
+
+  const envWrap = document.getElementById('envelope-wrap');
+  const envLetter = document.getElementById('env-letter');
+  const hint = document.getElementById('hint');
+  let cycleTimer = null;
+
+  document.getElementById('btn-yes').onclick = () => {
+    runLoader(() => {
+      loader.classList.remove('show');
+      showScreen('screen-envelope');
+      setCatState('happy-0');
+      // fluid, staggered entrance instead of an instant appearance
+      envWrap.classList.remove('show');
+      hint.classList.remove('show');
+      void envWrap.offsetWidth;
+      requestAnimationFrame(() => {
+        setTimeout(() => envWrap.classList.add('show'), 120);
+        setTimeout(() => hint.classList.add('show'), 520);
+      });
+    });
+  };
+  document.getElementById('btn-no').onclick = () => {
+    showScreen('screen-no');
+    setCatState('sad');
+  };
+  document.getElementById('btn-retry').onclick = () => {
+    showScreen('screen-start');
+    setCatState('neutral');
+    envWrap.classList.remove('open', 'closing', 'show');
+    hint.classList.remove('show');
+    hint.textContent = 'Tap the seal';
+    clearTimeout(cycleTimer);
+  };
+
+  function burstDust(){
+    const count = 10;
+    for(let i=0;i<count;i++){
+      const p = document.createElement('div');
+      p.className = 'dust-particle';
+      const angle = (Math.PI * 2 * i)/count + Math.random()*0.4;
+      const dist = 26 + Math.random()*22;
+      p.style.setProperty('--px', Math.cos(angle)*dist + 'px');
+      p.style.setProperty('--py', Math.sin(angle)*dist + 'px');
+      p.style.animationDelay = (Math.random()*80) + 'ms';
+      envWrap.appendChild(p);
+      p.addEventListener('animationend', () => p.remove());
+    }
+  }
+
+  function openEnvelope(){
+    const picked = pickMessage();
+    envLetter.textContent = picked.text;
+    envWrap.classList.add('cracking');
+    burstDust();
+    setCatState('happy-' + picked.index); // cat's face changes with each message
+    setTimeout(() => {
+      envWrap.classList.remove('cracking');
+      envWrap.classList.add('open');
+      hint.textContent = 'Tap for another';
+    }, 260);
+  }
+
+  function closeEnvelope(cb){
+    envWrap.classList.add('closing');
+    hint.textContent = 'Tap for another hidden message';
+    setTimeout(() => {
+      envWrap.classList.remove('open', 'closing');
+      if(cb) cb();
+    }, 460);
+  }
+
+  function runCycle(){
+    clearTimeout(cycleTimer);
+    openEnvelope();
+    cycleTimer = setTimeout(() => {
+      closeEnvelope(() => setTimeout(runCycle, 550));
+    }, 10000);
+  }
+
+  envWrap.addEventListener('click', () => {
+    clearTimeout(cycleTimer);
+    if(!envWrap.classList.contains('open')){
+      runCycle();
+    } else {
+      closeEnvelope(() => setTimeout(runCycle, 350));
+    }
+  });
+</script>
+</body>
+</html>
